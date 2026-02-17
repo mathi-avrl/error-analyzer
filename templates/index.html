@@ -482,10 +482,10 @@
             <form id="loginForm">
                 <h2>SuperGen Login</h2>
                 <div class="login-group">
-                    <label for="clientUserEmail">Username:</label>
-                    <input id="clientUserEmail" placeholder="clientname/username@email.com" type="text" required/>
-                    <label for="clientUserPassword">Password:</label>
-                    <input id="clientUserPassword" type="password" placeholder="Enter password" required/>
+                    <label for="supergenCred">Username:</label>
+                    <input id="supergenCred" placeholder="clientname/username@email.com" type="text" required/>
+                    <label for="supergenPass">Password:</label>
+                    <input id="supergenPass" type="password" placeholder="Enter password" required/>
                 </div>
             </form>
             <button id="loginBtn" class="btn btn-primary">Login</button>
@@ -512,8 +512,8 @@
                 <label>Select Date:</label>
                 <input type="date" class="date-input" id="dateInput">
                 <button class="btn btn-primary" onclick="getData()">Get Data</button>
-                <!-- <button id="startRecordBtn" class="btn btn-secondary" onclick="startRecord()">Start Record</button>
-                <button id="stopRecordBtn" class="btn btn-secondary hidden" onclick="stopRecord()">Stop Record</button> -->
+                <button id="startRecordBtn" class="btn btn-secondary" onclick="startRecord()">Start Record</button>
+                <button id="stopRecordBtn" class="btn btn-secondary hidden" onclick="stopRecord()">Stop Record</button>
             </div>
 
             <h2>Bots</h2>
@@ -625,32 +625,32 @@
 
         // Login logic
         const loginStudioObj = {};
-        let currentClientName = '';
+        let currentClientName = ""
 
         async function signIn() {
-            const clientUserEmail = document.getElementById('clientUserEmail').value.trim();
-            const clientUserPassword = document.getElementById('clientUserPassword').value.trim();
+            const endpoint = 'https://studio.avrlgeneration.com/so';
+            const superGenUsername = document.getElementById('supergenCred').value.trim();
 
-            if (!clientUserEmail) {
+            if (!superGenUsername) {
+                showToast('Please enter your Super Gen username', 'error', 4000);
+                return;
+            }
+
+            if (!superGenUsername.includes('/')) {
+                showToast('Invalid Super Gen username format. Use "clientName/username"', 'error', 4000);
+                return;
+            }
+
+            const [clientName, username] = superGenUsername.split('/');
+            currentClientName = clientName
+            const password = document.getElementById('supergenPass').value;
+
+            if (username.length == 0) {
                 showToast('Please enter your username', 'error', 4000);
                 return;
             }
 
-            if (!clientUserEmail.includes('/')) {
-                showToast('Invalid username format. Use "clientname/username@email.com"', 'error', 4000);
-                return;
-            }
-
-            // EXTRACT CLIENT NAME FROM USERNAME
-            const [clientName, userPart] = clientUserEmail.split('/');
-            currentClientName = clientName.toLowerCase();
-
-            if (!userPart) {
-                showToast('Please enter your username', 'error', 4000);
-                return;
-            }
-
-            if (clientUserPassword.length === 0) {
+            if (password.length == 0) {
                 showToast('Please enter your password', 'error', 4000);
                 return;
             }
@@ -658,17 +658,37 @@
             showLoader('Authenticating and loading client data...');
 
             try {
-                // Update UI on successful login
-                document.getElementById('loginModal').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                document.getElementById('welcomeMessage').textContent = `Client: ${currentClientName} | Welcome!`;
-                
-                showToast('Login successful', 'success', 3000);
-                
-                // Fetch data for this client
-                const dateInput = document.getElementById('dateInput');
-                await fetchBotData(dateInput.value);
+                const studioRes = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'studiouser_login',
+                        client_name: clientName,
+                        username,
+                        password,
+                        shared_login: true,
+                        tzo: new Date().getTimezoneOffset()
+                    })
+                });
 
+                const studioData = await studioRes.json();
+                console.log(studioRes.ok && studioData.cookie_stub_data)
+                if (studioRes.ok && studioData.cookie_stub_data) {
+                    loginStudioObj.cookie_stub_data = studioData.cookie_stub_data;
+                    // Update UI on successful login
+                    document.getElementById('loginModal').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('welcomeMessage').textContent = `Client: ${username} | Welcome!`;
+                    
+                    showToast('Login successful', 'success', 3000);
+                    // Fetch data for this client
+                    const dateInput = document.getElementById('dateInput');
+                    await fetchBotData(dateInput.value);
+
+                }else{
+                     throw new Error(studioData.error || studioData.message || 'Studio login failed');
+                }    
+                
             } catch (error) {
                 console.error('Login error:', error);
                 showToast(error.message || 'Login failed', 'error', 4000);
@@ -973,7 +993,7 @@
             });
             
             modal.classList.add('show');
-        }
+loginModal        }
         
         function toggleRequestBody(index) {
             const container = document.getElementById(`request-body-${index}`);

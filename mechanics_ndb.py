@@ -12,7 +12,7 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
     datefmt='%Y-%m-%d:%H:%M:%S', level=logging.INFO)
 logger = logging.getLogger(__name__)
  
-def update_datastore(client_name, account_name, avrl_user_id, error_message, request_body):
+def update_datastore(client_name, account_name, avrl_user_id, error_message):
     try:
        
         # Step 1: Generate a unique ID for the new entity using UUID
@@ -32,7 +32,6 @@ def update_datastore(client_name, account_name, avrl_user_id, error_message, req
             'account_name': account_name,
             'avrl_user_id': avrl_user_id,
             'error_message': error_message,
-            'request_body': request_body,
             'created_at': created_at,
             'expire_at': expire_at
         })
@@ -130,7 +129,6 @@ def get_bot_metrics(selected_date, client_name):
                     'error_message': '',
                     'current_time': '',
                     'errors_list': [],  # Store all errors
-                    'request_body': {},
                     'phoenix_requests': {'pre_8am': 0, '8am_6pm': 0, 'post_6pm': 0},
                     'auth_failures': {'pre_8am': 0, '8am_6pm': 0, 'post_6pm': 0},
                     'malformed_requests': {'pre_8am': 0, '8am_6pm': 0, 'post_6pm': 0},
@@ -142,10 +140,6 @@ def get_bot_metrics(selected_date, client_name):
             error_msg = error_message_entity.get('error_message', '')
             current_time = error_message_entity.get('current_time', '')
             
-            # Store request_body if available
-            request_body = entity.get('request_body', {})
-            if request_body and not tree_data[tree_name]['request_body']:
-                tree_data[tree_name]['request_body'] = request_body
             
             # Store the latest error details (for backward compatibility)
             tree_data[tree_name]['error_code'] = error_code
@@ -181,8 +175,7 @@ def get_bot_metrics(selected_date, client_name):
                 'error_message': error_msg,
                 'current_time': current_time,
                 'time_period': time_period,
-                'error_type': error_type,
-                'request_body': request_body
+                'error_type': error_type
             })
             if time_period:
                 # Update phoenix_requests total (increment count)
@@ -205,7 +198,6 @@ def get_bot_metrics(selected_date, client_name):
                 'error_message': data['error_message'],
                 'current_time': data['current_time'],
                 'errors_list': data['errors_list'],
-                'request_body': data['request_body'],
                 'phoenix_requests': {
                     'pre_8am': format_count(data['phoenix_requests']['pre_8am']),
                     '8am_6pm': format_count(data['phoenix_requests']['8am_6pm']),

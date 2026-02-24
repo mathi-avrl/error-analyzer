@@ -3,7 +3,7 @@ import uuid
 import orjson
 from google.cloud import datastore
 from datetime import datetime, timedelta
-
+from google.cloud.datastore.query import PropertyFilter
 # Initialize the Datastore client
 datastore_client = datastore.Client()
 
@@ -77,7 +77,9 @@ def get_bot_metrics(selected_date, client_name):
         logger.info(f"Fetching bot metrics for client_name={client_name_str}, date={selected_date_obj}")
 
         query = datastore_client.query(kind="phoenix_test")
-        query.add_filter(filter=("client_name", "=", client_name_str))
+        query.add_filter(
+            filter=PropertyFilter("client_name", "=", client_name_str)
+        )
         entities = list(query.fetch())
                 
         # Dictionary to store unique tree names and their data

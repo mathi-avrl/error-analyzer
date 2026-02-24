@@ -3,6 +3,7 @@ from flask import Flask, make_response, request, render_template
 
 import orjson
 import mechanics_ndb
+import mechanics_jwt
 # Logging
 import logging
 
@@ -48,6 +49,12 @@ def get_bot_data():
                 'Access-Control-Allow-Origin': '*'
             }
         
+        jwt_token = request.headers.get('Authentication', None)
+        if jwt_token:
+            status, payload = mechanics_jwt.verify_token_with_jwks(jwt_token)
+            if not status:
+                return {"status": "failed", "message": "Failed to authenticate, invalid token"}, 401
+
         bot_data = mechanics_ndb.get_bot_metrics(selected_date=selected_date, client_name=client_name)
  
         return orjson.dumps({'status': 'success', 'data': bot_data}), 200, {
@@ -71,7 +78,6 @@ def insert_data():
         response.headers.add('Access-Control-Allow-Methods', "*")
         return response
     elif request.method == "POST":
-        global recording
         params = request.get_json(force=True)
         # Extract values from nested structure
         client_name = params.get('client_name', '')
@@ -80,11 +86,12 @@ def insert_data():
         logging_obj = push_data.get('logging_obj', {})
         data = logging_obj.get('data', {})
         errors = data.get('errors', {})
-        # pricing_request = data.get('pricing_system_request', {})
-        
-        store_request = recording
 
-        # pricing_request = pricing_request if recording else {}
+        jwt_token = params.get('session_key', None)
+        if jwt_token:
+            status, payload = mechanics_jwt.verify_token_with_jwks(jwt_token)
+            if not status:
+                return {"status": "failed", "message": "Failed to authenticate, invalid token"}, 401
         
         # Safely extract caller_details
         caller_details = errors.get('caller_details', '')

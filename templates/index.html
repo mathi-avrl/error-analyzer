@@ -123,7 +123,12 @@
             margin-bottom: 30px;
             color: #f8f6f6;
         }
-
+       #modalBotName h2 {
+         color: #070707;
+       }
+        #welcomeMessage{
+            color: #f8f6f6;
+        }
         .controls {
             display: flex;
             gap: 10px;
@@ -173,7 +178,7 @@
         #app h2 {
             font-size: 18px;
             margin-bottom: 20px;
-            color: #fcfafa;
+            color: #0a0a0a;
         }
 
         table {
@@ -512,8 +517,6 @@
                 <label>Select Date:</label>
                 <input type="date" class="date-input" id="dateInput">
                 <button class="btn btn-primary" onclick="getData()">Get Data</button>
-                <!-- <button id="startRecordBtn" class="btn btn-secondary" onclick="startRecord()">Start Record</button>
-                <button id="stopRecordBtn" class="btn btn-secondary hidden" onclick="stopRecord()">Stop Record</button> -->
             </div>
 
             <h2>Bots</h2>
@@ -716,7 +719,7 @@
         
         async function fetchBotData(selectedDate = null) {
             try {
-                console.log('Fetching bot data for client:', currentClientName);
+               
                 showLoader('Fetching bot data...');
                 
                 let url = '/api/get-bot-data?client_name=' + encodeURIComponent(currentClientName);
@@ -724,11 +727,20 @@
                     url += `&date=${selectedDate}`;
                 }
                 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authentication': loginStudioObj.cookie_stub_data.session_key
+                        }
+                    });
                 const result = await response.json();
-                console.log('Response:', result);
                 
-                
+                if (response.status === 401 || response.status === 403) {
+                        const msg = 'Failed to authenticate. Please log in again.';
+                        showToast(msg, 'error', 4000);
+                        return;
+                    }
                 if (result.status === 'success') {
                     allBotData = result.data;
                     populateTable(result.data);
@@ -748,7 +760,7 @@
                 hideLoader();
             }
         }
-        
+         
         function populateTable(botData) {
             const tableBody = document.getElementById('botTableBody');
             tableBody.innerHTML = '';
@@ -857,31 +869,7 @@
             }
         }
         
-        function startRecord() {
-            fetch('/record/start', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(res => res.json())
-            .then(data => {
-                showToast("Recording started", "success");
-                document.getElementById('startRecordBtn').classList.add('hidden');
-                document.getElementById('stopRecordBtn').classList.remove('hidden');
-            });
-        }
 
-        function stopRecord() {
-            fetch('/record/stop', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(res => res.json())
-            .then(data => {
-                showToast("Recording stopped", "info");
-                document.getElementById('stopRecordBtn').classList.add('hidden');
-                document.getElementById('startRecordBtn').classList.remove('hidden');
-            });
-        }
 
         function showErrorDetailsByType(botName, errorType, timePeriod) {
             const bot = allBotData.find(b => b.bot_name === botName);
